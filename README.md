@@ -1,61 +1,109 @@
-课设视频站（FastAPI + SQLite + 前端静态页）
+课设系统说明文档
 
-仿 B 站风格的小型视频站，支持注册登录、管理员权限、视频上传/播放、点赞/收藏/投币、弹幕（含敏感词过滤、高能时刻）、评论、搜索推荐、个人资料与头像上传、后台管理等。前端为纯静态 HTML/CSS/JS，后端 FastAPI + SQLite，Nginx 提供静态资源与 /api 反代。
+> 本版为结构完整的 Markdown 说明文档，覆盖需求、设计、实现、测试与总结，后续可按段落继续扩写。
+> 项目代码位于 `main.py`、`algo.py`、`static/` 前端文件夹，后端采用 FastAPI + SQLite，前端为类 B 站风格的静态页（HTML/CSS/JS）。
 
-## 目录结构
+## 1 问题描述及需求分析
 
-- `main.py`：FastAPI 后端入口
-- `algo.py`：AC 自动机敏感词过滤
-- `static/`：前端静态页、样式、脚本
-- `REPORT.md`：原始说明文档（含编码问题）
-- `REPORT_UPDATED.md`：更新版说明文档（推荐阅读）
+### 1.1 问题描述
 
-## 快速运行
+设计并实现一个仿 B 站的在线视频平台，支持用户注册登录、权限区分（管理员/普通用户）、视频上传与播放、点赞收藏投币、弹幕与评论、搜索与推荐、后台管理、个人中心资料修改与头像上传、分区标签体系、历史/稍后再看（可拓展）、消息与高能弹幕显示等核心体验。
 
-```bash
-cd /www/wwwroot/qiuyu.online
-python3 -m venv venv
-./venv/bin/python -m pip install --upgrade pip
-./venv/bin/python -m pip install fastapi uvicorn[standard] python-multipart
+### 1.2 相关文献资料
 
-# 启动（开发）
-APP_SECRET=change-me ./venv/bin/uvicorn main:app --app-dir /www/wwwroot/qiuyu.online --host 0.0.0.0 --port 9000
-```
+- FastAPI 官方文档：https://fastapi.tiangolo.com/（异步接口、依赖注入、安全、CORS）
+- SQLite 官方文档：https://www.sqlite.org/docs.html（轻量级嵌入式数据库，适合课程项目快速开发）
+- Starlette CORS 中间件说明：https://www.starlette.io/middleware/#corsmiddleware（跨域响应头配置）
+- Uvicorn ASGI Server：https://www.uvicorn.org/（服务启动参数、性能建议）
+- Nginx 官方文档：https://nginx.org/en/docs/（反向代理、静态资源、缓存与压缩）
+- AC 自动机多模式匹配原理（参考文章示例：https://cp-algorithms.com/string/aho_corasick.html）
+- 前端交互与布局参考（B 站风格）：官方站点与社区设计文章（示例：https://web.dev/learn/css/，https://developer.mozilla.org/zh-CN/docs/Learn/JavaScript）
 
-Nginx 反代示例（80 -> 静态；/api -> 127.0.0.1:9000）：
+### 1.3 需求分析
 
-```nginx
-server {
-    listen 80;
-    server_name qiuyu.online;
-    location /static/ { alias /www/wwwroot/qiuyu.online/static/; try_files $uri =404; }
-    location /api/    { proxy_pass http://127.0.0.1:9000; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; }
-    location /        { proxy_pass http://127.0.0.1:9000; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; }
-}
-```
+- 输入：
+  - 用户侧：注册/登录（用户名、密码）、个人资料（昵称、签名、性别/地区、头像上传）、互动行为（点赞/收藏/投币）、弹幕与评论内容、搜索关键词。
+  - 内容侧：视频文件及元数据（标题、简介、封面、分区、标签）、可选的分区/标签维护、过滤词维护。
+- 处理：
+  - 鉴权与权限：登录发放 token，区分普通用户/管理员，接口按角色授权。
+  - 内容存储：视频/封面上传保存到 `static/uploads`，元数据入库；播放页按 ID 读取。
+  - 弹幕：发送时记录播放时间，写库；拉取时按时间排序；敏感词用 AC 自动机过滤；暂停时前端暂停弹幕动画；统计高能时刻。
+  - 评论：发布/删除（本人或管理员），楼中楼一层，分页返回。
+  - 互动：点赞/收藏/投币写关系表并更新视频热度。
+  - 搜索与推荐：标题/标签关键词搜索；推荐按热度；最新按时间。
+  - 后台：用户封禁/重置、视频下架/删除、评论删除、统计（用户数、视频数、热门 TopN）。
+  - 资料与头像：个人中心上传头像（保存 URL），修改昵称/签名等。
+  - 安全与校验：输入校验、文件类型/大小限制、CORS 配置、防未登录操作、基础限流可扩展。
+- 输出：
+  - 统一 JSON：`code/message/data`。
+  - 页面：视频列表、详情、弹幕流/高能列表、评论列表、个人资料、后台管理表格、搜索结果。
+  - 错误提示：登录态失效、权限不足、上传失败（权限或类型）、敏感词提示等。
 
-## 部署守护（示例）
+## 2 总体设计
 
-- systemd：`/etc/systemd/system/qiuyu.service` 里 ExecStart 写绝对路径 `.../venv/bin/uvicorn main:app ...`
-- 宝塔进程守护：命令建议用 `/bin/bash -lc 'cd /path && APP_SECRET=... /path/venv/bin/uvicorn main:app --app-dir /path --host 0.0.0.0 --port 9000 >> /path/pm.log 2>&1'`
+### 2.1 算法设计思路
 
-## 主要功能
+- 弹幕敏感词：使用 AC 自动机（`algo.py`）预处理关键词，发送弹幕时 O(n) 过滤。
+- 推荐/排序：基础版本按照热度（播放+互动加权）与时间排序，接口 `/api/recommend`、`/api/videos?order=new`。
+- 弹幕时间轴：发送时记录视频当前播放时间，播放时按时间拉取并渲染，暂停时暂停弹幕动画。
 
-- 用户/权限：注册、登录、退出、个人资料与头像上传，管理员区分
-- 视频：上传/封面/标签/分区，播放页，热度/最新列表
-- 弹幕：时间轴发送与显示，敏感词过滤（AC 自动机），暂停同步，高能时刻标注
-- 评论：发布/删除（本人或管理员），分页，楼中楼一层
-- 互动：点赞、收藏、投币
-- 搜索与推荐：标题/标签搜索，热度/最新排序
-- 后台：用户/视频/评论管理，基础统计
+### 2.2 总体设计图（文字描述）
 
-## 架构图生成
+- 前端静态资源：`static/index.html`、`video.html`、`profile.html`、`style.css`、`app.js`、`home.js`、`script.js`。Nginx 直接服务静态文件，反代 `/api` 到 Uvicorn。
+- 后端 API：FastAPI（`main.py`），路由分为认证、用户、视频、弹幕、评论、后台管理、过滤词配置等。
+- 数据层：SQLite 本地文件（`data.db`），通过简单的表结构实现用户、视频、互动、弹幕、评论等。
+- 算法模块：`algo.py` 提供 AC 自动机的构建与过滤接口。
 
-- Mermaid 在线：https://mermaid.live/ （见 `REPORT_UPDATED.md` 里的示例代码）
-- Graphviz 在线：https://dreampuf.github.io/GraphvizOnline/
+## 3 详细设计
 
-## 其他
+### 3.1 相关数据定义
 
-- 默认头像数据 URI 已内置（`static/app.js` 的 `DEFAULT_AVATAR`）
-- 弹幕敏感词可通过 `/api/filter/words` 维护并热更新
-- 如需更多细节，参考 `REPORT_UPDATED.md`
+表 3-1 数据定义（核心字段与含义）
+
+
+| 变量/表                                                                                                    | 说明                           | 类型/示例 |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------ | --------- |
+| users(id, username, password, role, avatar, nickname, signature)                                           | 用户表，角色区分 admin/user    | INT/STR   |
+| videos(id, title, desc, cover, tags, area, plays, likes, coins, favorites, user_id, created_at, file_path) | 视频元数据                     | INT/STR   |
+| danmaku(id, video_id, user_id, content, time, color, created_at)                                           | 弹幕时间轴                     | INT/STR   |
+| comments(id, video_id, user_id, content, parent_id, created_at)                                            | 评论楼层                       | INT/STR   |
+| favorites(id, user_id, video_id)                                                                           | 收藏关系                       | INT       |
+| likes(id, user_id, video_id)                                                                               | 点赞关系                       | INT       |
+| history(id, user_id, video_id, progress, created_at)                                                       | 历史记录                       | INT/STR   |
+| filter_words(text)                                                                                         | 敏感词集合，用于 AC 自动机构建 | TEXT      |
+| DEFAULT_AVATAR                                                                                             | 默认头像                       | data URI  |
+| APP_SECRET                                                                                                 | 签名密钥/会话加密              | env       |
+
+### 3.2 各函数的功能设计
+
+#### 3.2.1 主要后端函数/路由模块
+
+
+| 路由/函数                           | 功能描述                 | 关键参数                             | 返回           |
+| ----------------------------------- | ------------------------ | ------------------------------------ | -------------- |
+| `/api/auth/register`                | 注册用户                 | username, password                   | token/用户信息 |
+| `/api/auth/login`                   | 登录获取 token           | username, password                   | token/用户信息 |
+| `/api/auth/me`                      | 获取当前登录信息         | Header: Authorization                | 用户信息       |
+| `/api/user/profile` PUT             | 更新头像/昵称/签名/地区  | multipart/form-data                  | 更新后信息     |
+| `/api/videos/upload`                | 上传视频+封面元数据      | file, cover, title, tags, area, desc | 视频ID         |
+| `/api/videos/{id}` GET              | 视频详情（含 UP 主信息） | id                                   | 视频对象       |
+| `/api/videos/{id}/danmaku` GET/POST | 获取/发送弹幕            | video_id, time, content              | 列表/成功      |
+| `/api/videos/{id}/comments`         | 发表评论/删评论          | content, parent_id                   | 列表/成功      |
+| `/api/like` `/api/fav` `/api/coin`  | 点赞/收藏/投币           | video_id                             | 成功           |
+| `/api/recommend`                    | 热度推荐                 | -                                    | 视频列表       |
+| `/api/videos?order=new`             | 最新投稿                 | -                                    | 视频列表       |
+| `/api/admin/*`                      | 用户封禁/视频下架/统计   | 需 admin 角色                        | 结果/统计      |
+| `/api/filter/words`                 | 设置/获取敏感词          | words                                | 过滤结果       |
+
+#### 3.2.2 函数间调用关系（示例）
+
+- 认证依赖：所有需要登录的接口通过 `Depends(auth_user)` 校验 token。
+- 弹幕发送：`auth_user` -> `ac_filter(content)` -> 数据库写入 -> 前端轮询/渲染。
+- 视频详情：`get_video` -> 关联查询 UP 主信息 -> 返回前端用于展示头像/昵称。
+- 过滤词设置：`set_filter_words` (algo) -> 构建 AC 自动机 -> 保存词表。
+
+#### 3.2.3 关键算法改进
+
+- AC 自动机在服务启动时加载敏感词，发送弹幕时只做 O(n) 匹配替换，避免逐词扫描。
+- 弹幕暂停：前端在视频 pause 时暂停动画（CSS/JS 控制）；播放恢复时继续滚动。
+- 高能弹幕：按同一时间窗弹幕数统计，标注高能时刻列表（侧边栏显示）。
