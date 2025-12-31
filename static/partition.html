@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>分区</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="large-head">
+        <div class="bili-nav">
+            <ul class="left-entry">
+                <li><a href="/static/index.html" class="entry-title"><span>首页</span></a></li>
+                <li><a href="/static/partition.html" class="entry-title"><span>分区</span></a></li>
+                <li><a href="/static/upload.html" class="entry-title"><span>投稿</span></a></li>
+            </ul>
+            <div class="center-search">
+                <div class="nav-search-content">
+                    <input id="catInput" class="nav-search-input" placeholder="分类名称">
+                </div>
+                <div class="nav-search-button" id="catBtn">加载</div>
+            </div>
+            <ul class="right-entry">
+                <li class="right-entry-item" onclick="location.href='/static/profile.html'">个人中心</li>
+                <li class="right-entry-item" onclick="location.href='/static/admin.html'">后台</li>
+            </ul>
+        </div>
+    </div>
+    <div class="container">
+        <div id="catList" class="video-grid" style="margin-top:16px;"></div>
+    </div>
+    <script src="/static/app.js"></script>
+    <script>
+        async function loadCat(cat) {
+            try {
+                const data = await api(`/api/videos?category=${encodeURIComponent(cat)}`);
+                const box = document.getElementById("catList");
+                box.innerHTML = "";
+                data.forEach(v => renderVideoCard(box, v));
+            } catch (e) { alert(e.message); }
+        }
+        document.getElementById("catBtn").onclick = () => {
+            const c = document.getElementById("catInput").value.trim();
+            if (c) loadCat(c);
+        };
+        const qs = new URLSearchParams(location.search);
+        if (qs.get("cat")) {
+            document.getElementById("catInput").value = qs.get("cat");
+            loadCat(qs.get("cat"));
+        }
+    </script>
+</body>
+</html>

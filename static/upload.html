@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>投稿上传</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="large-head">
+        <div class="bili-nav">
+            <ul class="left-entry">
+                <li><a href="/static/index.html" class="entry-title"><span>首页</span></a></li>
+                <li><a href="/static/partition.html" class="entry-title"><span>分区</span></a></li>
+                <li><a href="/static/search.html" class="entry-title"><span>搜索</span></a></li>
+            </ul>
+            <div class="center-search">
+                <div class="nav-search-content">
+                    <input class="nav-search-input" placeholder="搜索视频或标签" onkeypress="if(event.key==='Enter'){location.href='search.html?q='+encodeURIComponent(this.value);}">
+                </div>
+                <div class="nav-search-button" onclick="location.href='/static/search.html'">??</div>
+            </div>
+            <ul class="right-entry">
+                <li class="right-entry-item" onclick="location.href='/static/profile.html'">个人中心</li>
+                <li class="right-entry-item" onclick="location.href='/static/admin.html'">后台</li>
+            </ul>
+        </div>
+    </div>
+    <div class="container">
+        <div class="panel">
+            <h3>上传视频</h3>
+            <div class="form-grid">
+                <input id="title" placeholder="标题">
+                <input id="category" placeholder="分区，如：学习">
+                <input id="tags" placeholder="标签，逗号分隔">
+                <textarea id="desc" placeholder="简介"></textarea>
+                <label>封面<input id="cover" type="file"></label>
+                <label>视频文件<input id="file" type="file" accept="video/*"></label>
+            </div>
+            <button id="uploadBtn" class="primary-btn">上传</button>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+    <script>
+        document.getElementById("uploadBtn").onclick = async () => {
+            const fd = new FormData();
+            fd.append("title", document.getElementById("title").value);
+            fd.append("description", document.getElementById("desc").value);
+            fd.append("category", document.getElementById("category").value || "??");
+            fd.append("tags", document.getElementById("tags").value);
+            fd.append("file", document.getElementById("file").files[0]);
+            if (document.getElementById("cover").files[0]) {
+                fd.append("cover", document.getElementById("cover").files[0]);
+            }
+            try {
+                const token = getToken();
+                const res = await fetch("/api/videos/upload", {
+                    method: "POST",
+                    headers: token ? { "Authorization": "Bearer " + token } : {},
+                    body: fd
+                });
+                const json = await res.json();
+                if (json.code !== 0) throw new Error(json.message);
+                alert("???????ID?" + json.data.video_id);
+            } catch (e) {
+                alert(e.message || "????????");
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>搜索</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="large-head">
+        <div class="bili-nav">
+            <ul class="left-entry">
+                <li><a href="/static/index.html" class="entry-title"><span>首页</span></a></li>
+                <li><a href="/static/partition.html" class="entry-title"><span>分区</span></a></li>
+                <li><a href="/static/upload.html" class="entry-title"><span>投稿</span></a></li>
+            </ul>
+            <div class="center-search">
+                <div class="nav-search-content">
+                    <input id="searchInput" class="nav-search-input" placeholder="关键字">
+                </div>
+                <div class="nav-search-button" id="searchBtn">搜索</div>
+            </div>
+            <ul class="right-entry">
+                <li class="right-entry-item" onclick="location.href='/static/profile.html'">个人中心</li>
+                <li class="right-entry-item" onclick="location.href='/static/admin.html'">后台</li>
+            </ul>
+        </div>
+    </div>
+    <div class="container">
+        <div id="resultList" class="video-grid" style="margin-top:16px;"></div>
+    </div>
+    <script src="/static/app.js"></script>
+    <script>
+        const params = new URLSearchParams(location.search);
+        const input = document.getElementById("searchInput");
+        input.value = params.get("q") || "";
+        async function doSearch(q) {
+            if (!q) return;
+            try {
+                const data = await api(`/api/search?keyword=${encodeURIComponent(q)}`);
+                const box = document.getElementById("resultList");
+                box.innerHTML = "";
+                data.forEach(v => renderVideoCard(box, v));
+            } catch (e) {
+                alert(e.message);
+            }
+        }
+        document.getElementById("searchBtn").onclick = () => doSearch(input.value.trim());
+        input.addEventListener("keypress", e => { if (e.key === "Enter") doSearch(input.value.trim()); });
+        if (input.value) doSearch(input.value);
+    </script>
+</body>
+</html>

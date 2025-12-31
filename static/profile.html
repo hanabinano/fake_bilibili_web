@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>个人中心</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="large-head">
+        <div class="bili-nav">
+            <ul class="left-entry">
+                <li><a href="/static/index.html" class="entry-title"><span>首页</span></a></li>
+                <li><a href="/static/partition.html" class="entry-title"><span>分区</span></a></li>
+                <li><a href="/static/search.html" class="entry-title"><span>搜索</span></a></li>
+                <li><a href="/static/upload.html" class="entry-title"><span>投稿</span></a></li>
+            </ul>
+            <div class="center-search">
+                <div class="nav-search-content">
+                    <input class="nav-search-input" placeholder="搜索视频或标签" onkeypress="if(event.key==='Enter'){location.href='/static/search.html?q='+encodeURIComponent(this.value);}">
+                </div>
+                <div class="nav-search-button" onclick="location.href='/static/search.html'">🔍</div>
+            </div>
+            <ul class="right-entry">
+                <li class="right-entry-item" onclick="location.href='/static/admin.html'">后台</li>
+                <li><img id="userAvatar" class="nav-avatar" alt="avatar"></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <h3>资料</h3>
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <img id="avatarPreview" src="" alt="avatar" style="width:72px;height:72px;border-radius:50%;object-fit:cover;">
+                <div>
+                    <input id="avatarFile" type="file" accept="image/*">
+                    <button id="uploadAvatar" class="primary-btn" style="margin-left:8px;">上传头像</button>
+                </div>
+            </div>
+            <div class="form-grid">
+                <input id="nickname" placeholder="昵称">
+                <input id="avatar" placeholder="头像URL">
+                <input id="gender" placeholder="性别">
+                <input id="region" placeholder="地区">
+                <textarea id="bio" placeholder="个性签名"></textarea>
+            </div>
+            <button id="saveProfile" class="primary-btn">保存资料</button>
+        </div>
+
+        <div class="panel">
+            <h3>修改密码</h3>
+            <div class="form-grid">
+                <input id="oldPwd" type="password" placeholder="旧密码">
+                <input id="newPwd" type="password" placeholder="新密码">
+            </div>
+            <button id="savePwd" class="primary-btn">修改</button>
+        </div>
+
+        <div class="panel">
+            <h3>历史记录</h3>
+            <div id="historyList" class="list"></div>
+        </div>
+
+        <div class="panel">
+            <h3>稍后再看</h3>
+            <div id="laterList" class="list"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script>
+        const localDefaultAvatar = window.DEFAULT_AVATAR || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2300a1d6'/%3E%3Ccircle cx='32' cy='24' r='12' fill='%23fff'/%3E%3Cpath d='M12 56c4-10 12-16 20-16s16 6 20 16' fill='%23fff'/%3E%3C/svg%3E";
+
+        async function ensureLogin() {
+            const token = getToken();
+            if (!token) {
+                alert("请先登录");
+                location.href = "/static/index.html";
+                throw new Error("not logged in");
+            }
+        }
+
+        async function loadProfile() {
+            await ensureLogin();
+            try {
+                const me = await api('/api/auth/me');
+                document.getElementById('nickname').value = me.nickname || '';
+                document.getElementById('avatar').value = me.avatar || '';
+                document.getElementById('gender').value = me.gender || '';
+                document.getElementById('region').value = me.region || '';
+                document.getElementById('bio').value = me.bio || '';
+                document.getElementById('avatarPreview').src = me.avatar || localDefaultAvatar;
+                if (window.renderUserUI) window.renderUserUI(me);
+            } catch (e) {
+                alert('请先登录');
+                location.href = '/static/index.html';
+            }
+        }
+
+        document.getElementById('uploadAvatar').onclick = async () => {
+            const file = document.getElementById('avatarFile').files[0];
+            if (!file) return alert('请选择头像文件');
+            const fd = new FormData();
+            fd.append('file', file);
+            try {
+                const res = await fetch('/api/user/avatar', {
+                    method: 'POST',
+                    headers: { Authorization: 'Bearer ' + getToken() },
+                    body: fd,
+                });
+                const json = await res.json();
+                if (json.code !== 0) throw new Error(json.message || '上传失败');
+                const url = json.data.avatar || '';
+                document.getElementById('avatarPreview').src = url || localDefaultAvatar;
+                document.getElementById('avatar').value = url;
+                alert('头像已更新');
+                if (window.loadMeAndRender) window.loadMeAndRender();
+            } catch (e) {
+                alert(e.message || '上传失败');
+            }
+        };
+
+        document.getElementById('saveProfile').onclick = async () => {
+            try {
+                await api('/api/user/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nickname: document.getElementById('nickname').value,
+                        avatar: document.getElementById('avatar').value,
+                        gender: document.getElementById('gender').value,
+                        region: document.getElementById('region').value,
+                        bio: document.getElementById('bio').value,
+                    })
+                });
+                alert('已保存');
+                loadProfile();
+            } catch (e) { alert(e.message); }
+        };
+
+        document.getElementById('savePwd').onclick = async () => {
+            try {
+                await api('/api/user/password', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        old_password: document.getElementById('oldPwd').value,
+                        new_password: document.getElementById('newPwd').value,
+                    })
+                });
+                alert('修改成功');
+            } catch (e) { alert(e.message); }
+        };
+
+        async function loadHistory() {
+            try {
+                const data = await api('/api/history');
+                const box = document.getElementById('historyList');
+                box.innerHTML = '';
+                data.forEach(item => {
+                    const p = document.createElement('p');
+                    p.innerText = `${item.title || ''} 看到${Math.round(item.progress || 0)}s`;
+                    box.appendChild(p);
+                });
+            } catch (e) {}
+        }
+
+        async function loadLater() {
+            try {
+                const data = await api('/api/watchlater');
+                const box = document.getElementById('laterList');
+                box.innerHTML = '';
+                data.forEach(item => {
+                    const p = document.createElement('p');
+                    p.innerHTML = `<a href="/static/video.html?id=${item.video_id}">${item.title || item.video_id}</a>`;
+                    box.appendChild(p);
+                });
+            } catch (e) {}
+        }
+
+        (async function init() {
+            await loadProfile();
+            await loadHistory();
+            await loadLater();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>后台管理</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="large-head">
+        <div class="bili-nav">
+            <ul class="left-entry">
+                <li><a href="/static/index.html" class="entry-title"><span>首页</span></a></li>
+                <li><a href="/static/partition.html" class="entry-title"><span>分区</span></a></li>
+                <li><a href="/static/upload.html" class="entry-title"><span>投稿</span></a></li>
+            </ul>
+            <div class="center-search">
+                <div class="nav-search-content">
+                    <input class="nav-search-input" placeholder="搜索视频或标签" onkeypress="if(event.key==='Enter'){location.href='search.html?q='+encodeURIComponent(this.value);}">
+                </div>
+                <div class="nav-search-button" onclick="location.href='/static/search.html'">??</div>
+            </div>
+            <ul class="right-entry">
+                <li class="right-entry-item" onclick="location.href='/static/profile.html'">个人中心</li>
+            </ul>
+        </div>
+    </div>
+    <div class="container">
+        <div class="panel">
+            <h3>用户管理</h3>
+            <div id="userList" class="list"></div>
+        </div>
+        <div class="panel">
+            <h3>视频管理</h3>
+            <div id="videoList" class="list"></div>
+        </div>
+        <div class="panel">
+            <h3>统计</h3>
+            <pre id="statBox"></pre>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+    <script>
+        async function loadUsers() {
+            try {
+                const data = await api('/api/admin/users');
+                const box = document.getElementById('userList');
+                box.innerHTML = "";
+                data.forEach(u => {
+                    const p = document.createElement('p');
+                    p.innerHTML = `${u.username} (${u.role}) ??:${u.banned ? "??" : "??"} <button data-id="${u.id}" data-action="${u.banned ? 0 : 1}">${u.banned ? "??" : "??"}</button>`;
+                    box.appendChild(p);
+                });
+                box.querySelectorAll('button').forEach(btn => {
+                    btn.onclick = async () => {
+                        await api(`/api/admin/users/${btn.dataset.id}/ban?banned=${btn.dataset.action}`, { method: "POST" });
+                        loadUsers();
+                    };
+                });
+            } catch (e) { alert(e.message); }
+        }
+        async function loadVideos() {
+            try {
+                const data = await api('/api/videos?size=20');
+                const box = document.getElementById('videoList');
+                box.innerHTML = "";
+                data.forEach(v => {
+                    const p = document.createElement('p');
+                    p.innerHTML = `${v.id} - ${v.title} <button data-id="${v.id}">??</button>`;
+                    box.appendChild(p);
+                });
+                box.querySelectorAll('button').forEach(btn => {
+                    btn.onclick = async () => {
+                        await api(`/api/admin/videos/${btn.dataset.id}/delete`, { method: "POST" });
+                        loadVideos();
+                    };
+                });
+            } catch (e) { alert(e.message); }
+        }
+        async function loadStats() {
+            try {
+                const data = await api('/api/admin/stats');
+                document.getElementById('statBox').innerText = JSON.stringify(data, null, 2);
+            } catch (e) { alert(e.message); }
+        }
+        loadUsers(); loadVideos(); loadStats();
+    </script>
+</body>
+</html>

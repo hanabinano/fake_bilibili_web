@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>课设视频站 - 首页</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2300a1d6'/%3E%3Ctext x='18' y='44' font-size='32' font-family='Arial' fill='%23fff' font-weight='700'%3EB%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+    <div class="large-head">
+        <div class="bili-nav">
+            <ul class="left-entry">
+                <li><a href="/static/index.html" class="entry-title"><span>首页</span></a></li>
+                <li><a href="/static/partition.html" class="entry-title"><span>分区</span></a></li>
+                <li><a href="/static/search.html" class="entry-title"><span>搜索</span></a></li>
+                <li><a href="/static/upload.html" class="entry-title"><span>投稿</span></a></li>
+            </ul>
+            <div class="center-search">
+                <div class="nav-search-content">
+                    <input id="searchInput" class="nav-search-input" type="text" placeholder="搜索视频或标签">
+                </div>
+                <div class="nav-search-button" id="searchBtn">🔍</div>
+            </div>
+            <ul class="right-entry">
+                <li class="right-entry-item" id="loginBtn">登录</li>
+                <li class="right-entry-item" id="profileBtn">个人中心</li>
+                <li class="right-entry-item" onclick="location.href='/static/upload.html'">投稿</li>
+                <li class="right-entry-item" id="adminBtn">后台</li>
+                <li class="right-entry-item avatar-wrap"><img id="userAvatar" class="nav-avatar" src="" alt="avatar"></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="hero">
+            <div class="hero-text">
+                <h1>欢迎来到课设视频站</h1>
+                <p>わくわくしよっ！发现有趣视频，发弹幕一起玩吧～</p>
+                <button class="hero-btn" onclick="location.href='/static/upload.html'">立即投稿</button>
+            </div>
+            <div class="tag-row" id="tagRow">
+                <!-- 动态标签将由 home.js 填充 -->
+            </div>
+        </div>
+
+        <section>
+            <div class="section-header">
+                <h2>推荐</h2>
+                <span class="right-entry-item" onclick="location.href='/static/search.html'">更多 ></span>
+            </div>
+            <div id="recommendList" class="video-grid"></div>
+        </section>
+        <section>
+            <div class="section-header">
+                <h2>最新投稿</h2>
+                <span class="right-entry-item" onclick="location.href='/static/partition.html'">分区浏览 ></span>
+            </div>
+            <div id="latestList" class="video-grid"></div>
+        </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script src="/static/home.js"></script>
+</body>
+</html>

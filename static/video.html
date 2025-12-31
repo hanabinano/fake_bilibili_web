@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>视频播放</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="large-head">
+        <div class="bili-nav">
+            <ul class="left-entry">
+                <li><a href="/static/index.html" class="entry-title"><span>首页</span></a></li>
+                <li><a href="/static/partition.html" class="entry-title"><span>分区</span></a></li>
+                <li><a href="/static/search.html" class="entry-title"><span>搜索</span></a></li>
+                <li><a href="/static/upload.html" class="entry-title"><span>投稿</span></a></li>
+            </ul>
+            <div class="center-search">
+                <div class="nav-search-content">
+                    <input class="nav-search-input" type="text" placeholder="搜索视频或标签" onkeypress="if(event.key==='Enter'){location.href='/static/search.html?q='+encodeURIComponent(this.value);}">
+                </div>
+                <div class="nav-search-button" onclick="location.href='/static/search.html'">🔍</div>
+            </div>
+            <ul class="right-entry">
+                <li class="right-entry-item" onclick="location.href='/static/profile.html'">个人中心</li>
+                <li class="right-entry-item" onclick="location.href='/static/upload.html'">投稿</li>
+                <li class="right-entry-item" onclick="location.href='/static/admin.html'">后台</li>
+                <li><img id="userAvatar" class="nav-avatar" alt="avatar"></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container video-page">
+        <div class="video-main">
+            <h1 id="videoTitle" class="video-title">加载中...</h1>
+            <div id="videoMeta" class="video-meta"></div>
+            <div class="highlight-box" id="highlightList"></div>
+
+            <div class="player-wrapper">
+                <div id="danmakuLayer" class="danmaku-layer"></div>
+                <video id="videoElement" controls preload="auto">
+                    <source src="" type="video/mp4">
+                    您的浏览器不支持Video标签
+                </video>
+            </div>
+
+            <div class="action-bar">
+                <div class="action-chip">👍 点赞</div>
+                <div class="action-chip">⭐ 收藏</div>
+                <div class="action-chip">💰 投币</div>
+                <div class="action-chip">➡️ 分享</div>
+            </div>
+
+            <div class="sending-bar">
+                <div class="dm-setting">
+                    <span class="dm-icon">A</span>
+                    <input type="color" id="dmColor" value="#FFFFFF" title="弹幕颜色">
+                </div>
+                <input type="text" id="dmInput" class="dm-input" placeholder="发条弹幕吧 (回车发送)">
+                <button id="sendBtn" class="dm-btn">发送</button>
+            </div>
+
+            <div class="comments panel">
+                <h3>评论</h3>
+                <div class="form-grid">
+                    <textarea id="commentInput" placeholder="发表友善的评论"></textarea>
+                    <button id="commentBtn">发布</button>
+                </div>
+                <div id="commentList" class="list"></div>
+            </div>
+        </div>
+
+        <div class="video-side">
+            <div class="creator-card">
+                <img id="creatorAvatar" src="/static/1.jpg" alt="creator">
+                <div>
+                    <div class="name" id="creatorName">UP主</div>
+                    <div class="meta" id="creatorDesc">欢迎关注，更多精彩视频</div>
+                </div>
+            </div>
+
+            <div class="dm-side">
+                <h3>弹幕列表 <a href="javascript:void(0)" style="font-size:12px;color:#00a1d6;">查看历史</a></h3>
+                <div id="dmSideList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>
