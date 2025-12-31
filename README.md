@@ -16,8 +16,8 @@
 - Starlette CORS 中间件说明：https://www.starlette.io/middleware/#corsmiddleware（跨域响应头配置）
 - Uvicorn ASGI Server：https://www.uvicorn.org/（服务启动参数、性能建议）
 - Nginx 官方文档：https://nginx.org/en/docs/（反向代理、静态资源、缓存与压缩）
-- AC 自动机多模式匹配原理（参考文章示例：https://cp-algorithms.com/string/aho_corasick.html）
-- 前端交互与布局参考（B 站风格）：官方站点与社区设计文章（示例：https://web.dev/learn/css/，https://developer.mozilla.org/zh-CN/docs/Learn/JavaScript）
+- AC 自动机多模式匹配原理（https://cp-algorithms.com/string/aho_corasick.html）
+- 前端交互与布局参考（B 站风格）：官方站点与社区设计文章（https://web.dev/learn/css/，https://developer.mozilla.org/zh-CN/docs/Learn/JavaScript）
 
 ### 1.3 需求分析
 
